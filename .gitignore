@@ -1,0 +1,4 @@
+/node_modules
+/etc/*
+!/etc/superbotConfig.dist.js
+!/etc/superheroesConfig.dist.json
