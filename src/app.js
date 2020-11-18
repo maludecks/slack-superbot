@@ -30,18 +30,27 @@ app.view('view_setup', async ({ ack, body, view, context }) => {
 app.command('/superbot', async ({ command, ack, context, respond }) => {
   await ack();
 
-  switch (command.text) {
-    case 'pick':
-      return await respond(slackService.pick());
-    case 'setup':
-      return await app.client.views.open(
-        slackService.initSetup(context.botToken, command.trigger_id)
-      );
-    default:
-      return respond({
-        text: `Oh no...I don't understand what you asked me to do :(`,
-        response_type: 'ephemeral'
-      });
+  try {
+    switch (command.text) {
+      case 'pick':
+        return await respond(slackService.pick());
+      case 'setup':
+        return await app.client.views.open(
+          slackService.initSetup(context.botToken, command.trigger_id)
+        );
+      default:
+        return respond({
+          text: `Oh no...I don't understand what you asked me to do :(`,
+          response_type: 'ephemeral'
+        });
+    }
+  } catch (e) {
+    console.error(`Error on trying to define command: ${e.stack}`);
+
+    return respond({
+      response_type: 'ephemeral',
+      text: `Oh no, something is wrong with me, try again later :(`
+    });
   }
 });
 

@@ -19,38 +19,25 @@ function mention(botToken, channel, thread) {
     };
   }
   catch (e) {
-    console.error(e);
+    console.error(`Error on trying to mention: ${e.stack}`);
 
     if (e instanceof NoSuperheroSelectedError) {
       return {
         text: `Oh no, I couldn't find any superheroes to help you :(`,
         token: botToken,
-        thread_ts: event.thread_ts,
-        channel,
+        thread_ts: thread,
+        channel
       };
     }
   }
 }
 
 function initSetup(botToken, triggerId) {
-  try {
-    return {
-      token: botToken,
-      trigger_id: triggerId,
-      view: setupModalView
-    }
-  } catch (e) {
-    console.error(e);
-
-    return {
-      token: botToken,
-      trigger_id: triggerId,
-      view: basicModalView({
-        title: 'Oh no...',
-        text: `I couldn't initiate the setup now :( try again later!`
-      })
-    };
-  }
+  return {
+    token: botToken,
+    trigger_id: triggerId,
+    view: setupModalView
+  };
 }
 
 async function setup(botToken, triggerId, values) {
@@ -68,7 +55,7 @@ async function setup(botToken, triggerId, values) {
       })
     };
   } catch (e) {
-    console.error(e);
+    console.error(`Error on trying to setup: ${e.stack}`);
 
     if (e instanceof EmptyMembersListError) {
       return {
@@ -92,7 +79,7 @@ function pick() {
       text: `It's with you, ${slackMessageFormatter.mention(newlyPicked)}!`
     };
   } catch (e) {
-    console.error(e);
+    console.error(`Error on trying to pick: ${e.stack}`);
 
     if (e instanceof EmptyMembersListError) {
       return {
@@ -100,11 +87,6 @@ function pick() {
         text: `Oh no, I can't see any superheroes, try \`/superbot setup\` first`
       };
     }
-
-    return {
-      response_type: 'ephemeral',
-      text: `Oh no, something is wrong with me, try again later :(`
-    };
   }
 }
 
