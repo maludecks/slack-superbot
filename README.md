@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/maludecks/slack-superbot.svg?branch=master)](https://travis-ci.com/github/maludecks/slack-superbot)
 
-A slack app which picks random* channel members (a.k.a superheroes) and assigns them to take care of any reported bugs and tasks for a day. @Superbot is built in Javascript, runs on NodeJS and uses [bolt-js](https://slack.dev/bolt-js/) to interact with [Slack API](https://api.slack.com/).
+A slack app which picks random* channel members (a.k.a superheroes) and assigns them to take care of any reported bugs and tasks for a day. @Superbot is built in Javascript, runs on Node.js and uses [bolt-js](https://slack.dev/bolt-js/) to interact with [Slack API](https://api.slack.com/).
 
 ## Setup
 ```sh
@@ -10,7 +10,7 @@ A slack app which picks random* channel members (a.k.a superheroes) and assigns 
 npm install
 
 # Run the slack app
-npm run local
+npm start
 ```
 
 In order to be able to interact with @Superbot locally, you need to setup your own Slack app, follow the steps on [bolt-js documentation](https://slack.dev/bolt-js/tutorial/getting-started).
