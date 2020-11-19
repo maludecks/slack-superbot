@@ -1,122 +1,56 @@
 'use strict';
 
-const { App } = require('@slack/bolt');
-const EmptyMembersListError = require('./errors/emptyMembersListError');
-const NoSuperheroSelectedError = require('./errors/noSuperheroSelectedError');
+const { App, ExpressReceiver } = require('@slack/bolt');
 const { slack: slackConfig } = require('../etc/superbotConfig');
-const superheroService = require('./services/superheroService');
-const slackMessageFormatter = require('./utils/slackMessageFormatter');
-const basicModal = require('./utils/modals/basicModal');
-const setupSuperheroesListModal = require('./utils/modals/setupSuperheroesListModal');
+const slackService = require('./services/slackService');
 
-const app = new App({
-  token: slackConfig.token,
+const receiver = new ExpressReceiver({
   signingSecret: slackConfig.signingSecret
 });
 
-async function pick(say) {
-  try {
-    const newlyPicked = superheroService.pick();
-
-    return say(`It's with you, ${slackMessageFormatter.mention(newlyPicked)}!`);
-  } catch (e) {
-    console.error(e);
-
-    if (e instanceof EmptyMembersListError) {
-      return say(`Oh no, I can't see any superhero options, try \`/superbot setup\` first`);
-    }
-  }
-}
-
-async function setup(botToken, triggerId) {
-  try {
-    return await app.client.views.open(
-      setupSuperheroesListModal(botToken, triggerId)
-    );
-  } catch (e) {
-    console.error(e);
-
-    return await app.client.views.open(
-      basicModal(botToken, triggerId, {
-        title: 'Oh no...',
-        text: `I couldn't initiate the setup now :( try again later!`
-      })
-    );
-  }
-}
+const app = new App({
+  token: slackConfig.token,
+  receiver
+});
 
 app.event('app_mention', async ({ event, context }) => {
-  try {
-    const superheroes = superheroService.current();
-
-    return await app.client.chat.postMessage({
-      token: context.botToken,
-      channel: event.channel,
-      thread_ts: event.thread_ts,
-      text: `${slackMessageFormatter.mention(superheroes)} will take a look!`
-    });
-  }
-  catch (e) {
-    console.error(e);
-
-    if (e instanceof NoSuperheroSelectedError) {
-      return await app.client.chat.postMessage({
-        token: context.botToken,
-        channel: event.channel,
-        thread_ts: event.thread_ts,
-        text: `Oh no, I couldn't find any superheroes to help you :(`
-      });
-    }
-  }
+  return await app.client.chat.postMessage(
+      slackService.mention(context.botToken, event.channel, event.thread_ts)
+    );
 });
 
 app.view('view_setup', async ({ ack, body, view, context }) => {
   await ack();
 
-  const { values } = view.state;
-  const selectedUsers = values['section_users']['users_action']['selected_users'] || [];
-
-  try {
-    await superheroService.setup(selectedUsers, 1);
-
-    return await app.client.views.open(
-      basicModal(context.botToken, body.trigger_id, {
-        title: `Ok, I'm ready!`,
-        text: `Mention me (\`@superbot\`) or use \`/superbot pick\` to start!`
-      })
-    );
-  } catch (e) {
-    console.error(e);
-
-    if (e instanceof EmptyMembersListError) {
-      return await app.client.views.open(
-        basicModal(context.botToken, body.trigger_id, {
-          title: `Oh no...`,
-          text: `You need to select at least one user so I can start.`
-        })
-      );
-    }
-  }
+  return await app.client.views.open(
+    await slackService.setup(context.botToken, body.trigger_id, view.state.values)
+  );
 });
 
-app.command('/superbot', async ({ command, ack, say, context }) => {
+app.command('/superbot', async ({ command, ack, context, respond }) => {
   await ack();
 
-  const { text: commandText, trigger_id: triggerId } = command;
-  const { botToken } = context;
+  try {
+    switch (command.text) {
+      case 'pick':
+        return await respond(slackService.pick());
+      case 'setup':
+        return await app.client.views.open(
+          slackService.initSetup(context.botToken, command.trigger_id)
+        );
+      default:
+        return respond({
+          text: `Oh no...I don't understand what you asked me to do :(`,
+          response_type: 'ephemeral'
+        });
+    }
+  } catch (e) {
+    console.error(`Error on trying to define command: ${e.stack}`);
 
-  switch (commandText) {
-    case 'pick':
-      return await pick(say);
-    case 'setup':
-      return await setup(botToken, triggerId);
-    default:
-      return await app.client.views.open(
-        basicModal(botToken, triggerId, {
-          title: 'Oh no...',
-          text: `I couldn't identify what you want me to do for you :(`
-        })
-      );
+    return respond({
+      response_type: 'ephemeral',
+      text: `Oh no, something is wrong with me, try again later :(`
+    });
   }
 });
 
